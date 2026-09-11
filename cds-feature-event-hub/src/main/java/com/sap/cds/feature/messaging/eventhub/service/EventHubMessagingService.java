@@ -33,7 +33,7 @@ public class EventHubMessagingService extends AbstractMessagingService {
 	public static final String CE_SOURCE = "ceSource";
 	public static final String SYSTEM_ID = "systemId";
 
-	private final String ceSource;
+	final String ceSource;
 	private final String systemId;
 	private final boolean isMultitenant;
 	private final MessagingBrokerQueueListener queueListener;
@@ -151,8 +151,7 @@ public class EventHubMessagingService extends AbstractMessagingService {
 			if (ceSource == null) {
 				throw new ErrorStatusException(EventHubErrorStatuses.EVENT_HUB_EMIT_MISSING_CE_SOURCE);
 			}
-			
-			headers.put(CloudEventUtils.KEY_SOURCE, ceSource + tenant);
+			fillCeSource(headers, ceSource + tenant);
 		} else {
 			if (systemId == null) {
 				throw new ErrorStatusException(EventHubErrorStatuses.EVENT_HUB_EMIT_MISSING_SYSTEM_ID);
@@ -160,8 +159,7 @@ public class EventHubMessagingService extends AbstractMessagingService {
 			if (ceSource == null) {
 				throw new ErrorStatusException(EventHubErrorStatuses.EVENT_HUB_EMIT_MISSING_CE_SOURCE);
 			}
-			
-			headers.put(CloudEventUtils.KEY_SOURCE, ceSource + systemId);
+			fillCeSource(headers, ceSource + systemId);
 		}
 
 		try {
@@ -169,6 +167,18 @@ public class EventHubMessagingService extends AbstractMessagingService {
 			eventHubClient.sendMessage(context.getDataMap(), headers);
 		} catch (IOException e) {
 			throw new ErrorStatusException(CdsErrorStatuses.EVENT_EMITTING_FAILED, topic, e);
+		}
+	}
+
+	// Allow setting the ceSource on application level. Relevant if the assumed default
+	// UclSystemID==tenantId does not hold. 
+	// In fact, by default the UclSystemID is the subaccountId which is not guaranteed to be equal to the
+	// tenantId on subaccount level.
+	// Also, other definitions of the UCL system ID might have been defined as well.
+	void fillCeSource(final Map<String, Object> headers, final String defaultSource) {
+		final Object orgSource = headers.putIfAbsent(CloudEventUtils.KEY_SOURCE, defaultSource);
+		if (orgSource != null && (!(orgSource instanceof String) || !orgSource.toString().startsWith(ceSource))) {
+			throw new ErrorStatusException(EventHubErrorStatuses.EVENT_HUB_EMIT_INVALID_CE_SOURCE);
 		}
 	}
 
