@@ -32,8 +32,9 @@ public class EventHubMessagingService extends AbstractMessagingService {
 	private static final Logger logger = LoggerFactory.getLogger(EventHubMessagingService.class);
 	public static final String CE_SOURCE = "ceSource";
 	public static final String SYSTEM_ID = "systemId";
+	public static final String KEY_SUBACCOUNT_ID = "eventhub.btp.subaccountId";
 
-	final String ceSource;
+	private final String ceSource;
 	private final String systemId;
 	private final boolean isMultitenant;
 	private final MessagingBrokerQueueListener queueListener;
@@ -151,7 +152,7 @@ public class EventHubMessagingService extends AbstractMessagingService {
 			if (ceSource == null) {
 				throw new ErrorStatusException(EventHubErrorStatuses.EVENT_HUB_EMIT_MISSING_CE_SOURCE);
 			}
-			fillCeSource(headers, ceSource + tenant);
+			headers.put(CloudEventUtils.KEY_SOURCE, ceSource + resolveSourceSuffix(headers, tenant));
 		} else {
 			if (systemId == null) {
 				throw new ErrorStatusException(EventHubErrorStatuses.EVENT_HUB_EMIT_MISSING_SYSTEM_ID);
@@ -159,7 +160,7 @@ public class EventHubMessagingService extends AbstractMessagingService {
 			if (ceSource == null) {
 				throw new ErrorStatusException(EventHubErrorStatuses.EVENT_HUB_EMIT_MISSING_CE_SOURCE);
 			}
-			fillCeSource(headers, ceSource + systemId);
+			headers.put(CloudEventUtils.KEY_SOURCE, ceSource + systemId);
 		}
 
 		try {
@@ -170,16 +171,11 @@ public class EventHubMessagingService extends AbstractMessagingService {
 		}
 	}
 
-	// Allow setting the ceSource on application level. Relevant if the assumed default
-	// UclSystemID==tenantId does not hold. 
-	// In fact, by default the UclSystemID is the subaccountId which is not guaranteed to be equal to the
-	// tenantId on subaccount level.
-	// Also, other definitions of the UCL system ID might have been defined as well.
-	void fillCeSource(final Map<String, Object> headers, final String defaultSource) {
-		final Object orgSource = headers.putIfAbsent(CloudEventUtils.KEY_SOURCE, defaultSource);
-		if (orgSource != null && (!(orgSource instanceof String) || !orgSource.toString().startsWith(ceSource))) {
-			throw new ErrorStatusException(EventHubErrorStatuses.EVENT_HUB_EMIT_INVALID_CE_SOURCE);
-		}
+	// Allows the application to use the BTP subaccount ID as the ceSource suffix at the application level.
+	// Relevant when the tenant ID differs from the subaccount ID registered as the UCL system ID.
+	String resolveSourceSuffix(Map<String, Object> headers, String tenant) {
+		String subaccountId = (String) headers.remove(KEY_SUBACCOUNT_ID);
+		return subaccountId != null ? subaccountId : tenant;
 	}
 
 	private String getTenant(EventContext context) {

@@ -9,8 +9,7 @@ public enum EventHubErrorStatuses implements ErrorStatus {
 	EVENT_HUB_TENANT_CONTEXT_MISSING(50007028, "Missing tenant context to emit a message to Event Hub.", ErrorStatuses.SERVER_ERROR),
 	EVENT_HUB_EMIT_MISSING_CE_SOURCE(50007029, "Event Hub service failed to emit, due to ceSource missing in the service binding.", ErrorStatuses.SERVER_ERROR),
 	EVENT_HUB_EMIT_MISSING_SYSTEM_ID(50007030, "Event Hub service failed to emit, due to systemId missing in the service binding.", ErrorStatuses.SERVER_ERROR),
-	EVENT_HUB_EMIT_MISSING_ENDPOINTS(50007031, "Event Hub service failed to emit, due to missing endpoints in the service binding.", ErrorStatuses.SERVER_ERROR),
-	EVENT_HUB_EMIT_INVALID_CE_SOURCE(50007032, "Event Hub service failed to emit, due to invalid externally set ceSource.", ErrorStatuses.SERVER_ERROR);
+	EVENT_HUB_EMIT_MISSING_ENDPOINTS(50007031, "Event Hub service failed to emit, due to missing endpoints in the service binding.", ErrorStatuses.SERVER_ERROR);
 
 	private final int code;
 	private final String description;
